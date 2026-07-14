@@ -342,8 +342,18 @@ async function generateGif() {
     gif.on('finished', blob => {
       const url = URL.createObjectURL(blob);
       resultImg.src = url;
-      downloadLink.href = url;
-      openTabLink.href = url;
+
+      // Convert to a data: URL for download/open-in-tab. blob: URLs are unreliable
+      // on some mobile browsers' download managers (shows "downloading" but never
+      // completes) because the blob can be garbage-collected before the OS-level
+      // download finishes; a self-contained data: URL avoids that.
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result;
+        downloadLink.href = dataUrl;
+        openTabLink.href = dataUrl;
+      };
+      reader.readAsDataURL(blob);
 
       const shareFile = new File([blob], 'output.gif', { type: 'image/gif' });
       if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
